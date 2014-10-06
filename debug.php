@@ -32,6 +32,10 @@ if ($operate === "histroy") {
     include("util/dailysentence.php");
     echo "进入方法";
     $content = getEverday();
+}else if($operate === 'json'){
+    include("./nav/fetchLinks.php");
+    $obj = new Link('123','456','17');
+    $content = json_encode($obj);
 }
 echo time();
 echo $content;

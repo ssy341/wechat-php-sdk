@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title></title>
+</head>
+<body>
+<div id="nav">
+
+</div>
+</body>
+</html>
+
+<script src="jquery.min.js"></script>
+<script>
+    $(document).ready(function () {
+        $.ajax({
+            url: "fetchLinks.php",
+            dataType: "json",
+            success: function (data) {
+                $.each(data, function (i, obj1) {
+                    $("#nav").append("<p class='" + obj1.id + "'>" + obj1.name + ":</p>");
+                    $.each(obj1.links, function (j, obj2) {
+                        $("#nav p." + obj1.id).append("<a href='" + obj2.href + "' title='" + obj2.title + "' target='" + obj2.target + "'>" + obj2.title + "</a>");
+                    });
+                });
+            }
+        });
+    });
+</script>
