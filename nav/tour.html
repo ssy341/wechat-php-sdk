@@ -13,32 +13,52 @@
 </html>
 
 <script src="jquery.min.js"></script>
-<script src="jquery.cookie.js"></script>
 <script>
+    var localhost_url = 'fetchLinks.php';
+    //blog
+    var url = '/src/nav/fetchLinks.php';
     $(document).ready(function () {
-        var cache = $.cookie("nav");
-        if(typeof cache == 'undefined'){
-            $.ajax({
-                url: "fetchLinks.php",
-                dataType: "json",
-                success: function (data) {
-                    $.each(data, function (i, obj1) {
-                        $(".hero-unit").append("<p class='" + obj1.id + "'>" + obj1.name + ":</p>");
-                        $.each(obj1.links, function (j, obj2) {
-                            $(".hero-unit p." + obj1.id).append("<a class='btn btn-link' href='" + obj2.href + "' title='" + obj2.title + "' target='" + obj2.target + "'>" + obj2.title + "</a>");
+        if(window.localStorage){
+            var cache = localStorage['nav'];
+            if(typeof cache == 'undefined'){
+                $.ajax({
+                    url: localhost_url,
+                    dataType: "json",
+                    success: function (data) {
+                        $.each(data, function (i, obj1) {
+                            $(".hero-unit").append("<p class='" + obj1.id + "'>" + obj1.name + ":</p>");
+                            $.each(obj1.links, function (j, obj2) {
+                                $(".hero-unit p." + obj1.id).append("<a class='btn btn-link' href='" + obj2.href + "' title='" + obj2.title + "' target='" + obj2.target + "'>" + obj2.title + "</a>");
+                            });
                         });
-                    });
-                    //保存到cookie中
-                    var tmp = $(".hero-unit").clone();
-                    tmp.find('div').remove();
-                    $.cookie("nav",tmp.html());
-                    console.log('back');
-                    console.log($.cookie());
-                }
-            });
+                        //保存到localStorage中
+                        var tmp = $(".hero-unit").clone();
+                        tmp.find('div').remove();
+                        localStorage['nav'] = tmp.html();
+                    }
+                });
+            }else{
+                $(".hero-unit").append(cache);
+            }
         }else{
-            console.log('cache');
-            $(".hero-unit").append(cache);
+            fetchData();
         }
     });
+
+    //抓取数据
+    function fetchData() {
+        $.ajax({
+            url: localhost_url,
+            dataType: "json",
+            success: function (data) {
+                $.each(data, function (i, obj1) {
+                    $(".hero-unit").append("<p class='" + obj1.id + "'>" + obj1.name + ":</p>");
+                    $.each(obj1.links, function (j, obj2) {
+                        $(".hero-unit p." + obj1.id).append("<a class='btn btn-link' href='" + obj2.href + "' title='" + obj2.title + "' target='" + obj2.target + "'>" + obj2.title + "</a>");
+                    });
+                });
+            }
+        });
+    }
+
 </script>
