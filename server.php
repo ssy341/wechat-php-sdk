@@ -43,6 +43,7 @@
         $_history_today = "history";
         $_google = "g";
         $_daily = "everyday";
+        $_joke = "joke";
         /*if( $this->getRequest('content') === '蚂蚁上树')
             //$this->responseText('收到了文字消息：' . $this->getRequest('content'));
             $this->responseText('我不会做蚂蚁上树');
@@ -79,6 +80,18 @@
             include("util/dailysentence.php");
             $content = getEverday();
             $this->responseText($content);
+        }else if($keyword === $_joke){
+            include("util/joke.php");
+            $openid = $this->getRequest('fromusername');
+            $content = getJoke($openid);
+            if($content == null){
+                $this->responseText("你太厉害了，笑话都看完了，赶快告诉主人，添加笑话吧！");
+            }
+            $id = $content->getId();
+            $title = $content->getTitle();
+            $summary = $content->getContent();
+            record($openid,$id);
+            $this->responseText($title."\n".$summary);
         }else{
             //include("util/xiaoi.php");
             //$content = getXiaoInfo("api-sieezeyr",$keyword);
