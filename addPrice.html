@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title>添加报价</title>
+</head>
+<body>
+<form action="util/pcprice.php?action=addPrice" method="post">
+    <table border=0 cellpadding=0 cellspacing=0>
+        <tr><td>品牌：</td><td><select name="brand" id="brand"></select></td></tr>
+        <tr><td>分类：</td><td><select name="type" id="type"></select></td></tr>
+        <tr><td>地区：</td><td><select name="location" id="location"></select></td></tr>
+        <tr><td>型号：</td><td><input type="text" name="model"/></td></tr>
+        <tr><td>cpu：</td><td><input type="text" name="cpu"/></td></tr>
+        <tr><td>内存：</td><td><input type="text" name="memory" value="4G"/></td></tr>
+        <tr><td>硬盘：</td><td><input type="text" name="disk" value="500G"/></td></tr>
+        <tr><td>光驱：</td><td><input type="text" name="cdrom" value="DVDRW"/></td></tr>
+        <tr><td>显卡：</td><td><input type="text" name="display" value="1G"/></td></tr>
+        <tr><td>显示器大小：</td><td><input type="text" name="size" value="14.1"/></td></tr>
+        <tr><td>价格：</td><td><input type="text" name="price"/></td></tr>
+        <tr><td>备注：</td><td><input type="text" name="note"/></td></tr>
+        <tr><td>时间：</td><td><input type="text" name="date" id="date"/></td></tr>
+        <tr><td></td><td><input type="submit" value="提交"/></td></tr>
+    </table>
+</form>
+<hr/>
+<form action="util/pcprice.php?action=addBrand" method="post">
+    品牌：<input type="text" name="brand"/>
+    <input type="submit" value="添加"/>
+</form>
+<hr/>
+<form action="util/pcprice.php?action=addType" method="post">
+    分类：<input type="text" name="type"/>
+    <input type="submit" value="添加"/>
+</form>
+<hr/>
+<form action="util/pcprice.php?action=addLocation" method="post">
+    地区：<input type="text" name="location"/>
+    <input type="submit" value="添加"/>
+</form>
+</body>
+</html>
+<script src="js/jquery.min.js"></script>
+<script>
+    $(document).ready(function () {
+        $("#date").val(new Date().format('yyyy-MM-dd'));
+        $.ajax({
+            url: "util/pcprice.php?action=fetchBrand",
+            dataType: "json",
+            success: function (data) {
+                $.each(data, function (index, value) {
+                    $("#brand").append("<option value='" + value.id + "'>" + value.name + "</option>")
+                });
+            }
+        });
+        $.ajax({
+            url: "util/pcprice.php?action=fetchType",
+            dataType: "json",
+            success: function (data) {
+                $.each(data, function (index, value) {
+                    $("#type").append("<option value='" + value.id + "'>" + value.name + "</option>")
+                });
+            }
+        });
+        $.ajax({
+            url: "util/pcprice.php?action=fetchLocation",
+            dataType: "json",
+            success: function (data) {
+                $.each(data, function (index, value) {
+                    $("#location").append("<option value='" + value.id + "'>" + value.name + "</option>")
+                });
+            }
+        });
+    });
+
+    Date.prototype.format = function(format) {
+        var date = {
+            "M+": this.getMonth() + 1,
+            "d+": this.getDate(),
+            "h+": this.getHours(),
+            "m+": this.getMinutes(),
+            "s+": this.getSeconds(),
+            "q+": Math.floor((this.getMonth() + 3) / 3),
+            "S+": this.getMilliseconds()
+        };
+        if (/(y+)/i.test(format)) {
+            format = format.replace(RegExp.$1, (this.getFullYear() + '').substr(4 - RegExp.$1.length));
+        }
+        for (var k in date) {
+            if (new RegExp("(" + k + ")").test(format)) {
+                format = format.replace(RegExp.$1, RegExp.$1.length == 1
+                        ? date[k] : ("00" + date[k]).substr(("" + date[k]).length));
+            }
+        }
+        return format;
+    }
+</script>
