@@ -7,7 +7,7 @@
  */
 
 $operate = $_GET["a"];
-
+$content = "";
 if ($operate === "histroy") {
     include("util/history.php");
     $content = getHistoryInfo();
@@ -36,7 +36,20 @@ if ($operate === "histroy") {
     include("./nav/fetchLinks.php");
     $obj = new Link('123','456','17');
     $content = json_encode($obj);
+}else if($operate === 'movie'){
+    include("util/movie.php");
+    getMovie();
+}else if($operate === 'joke'){
+    include("util/joke.php");
+//    $content = joke();
+//    $content = j();
+    fetchJoke();
+}else if($operate === 'mail'){
+    include("util/mail.php");
+    $result = send_mail_lazypeople('keith@thxopen.com','通知','你有新的消息');
 }
+
+echo $result;
 echo time();
 echo $content;
 
