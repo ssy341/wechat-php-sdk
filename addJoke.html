@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title>抓取笑话</title>
+    <link href="js/bootstrap.css" rel="stylesheet">
+    <link href="js/docs.css" rel="stylesheet">
+</head>
+<body>
+<div style="margin-left:20px">
+    <fieldset>
+        <legend>抓取</legend>
+        地址：<input type="text" id="jokeUrl"/>
+        <button id="fetchText">抓取文字</button>
+        <button id="fetchPic">抓取图片</button>
+    </fieldset>
+</div>
+<img src="js/loading.gif" id="loading" style="display: none"/>
+<div style="margin-left:20px">
+    <fieldset>
+        <legend>手动添加</legend>
+        标题：<input type='text' id='tmptitle'/><br/>
+        内容：<textarea id='tmpcontent' cols='10' rows='5'></textarea><br/>
+        <button style="margin-left:220px" onclick='tmp()'>添加</button>
+    </fieldset>
+</div>
+<div id="jokecontent" class="bs-docs-example"></div>
+</body>
+</html>
+<script src="js/jquery.min.js"></script>
+<script>
+    $(document).ready(function () {
+        $("#fetchText").click(function(){
+            var url = $("#jokeUrl").val();
+            fetch('fetchText',url);
+        });
+        $("#fetchPic").click(function(){
+            var url = $("#jokeUrl").val();
+            fetch('fetchPic',url);
+        });
+    });
+
+    function tmp(){
+        var title = $("#tmptitle").val();
+        var content = $("#tmpcontent").val();
+        console.log(title);
+        console.log(content);
+    }
+
+    /**
+     * 抓取笑话
+     * @param t 笑话类型
+     * @param url 地址
+     */
+    function fetch(t,url){
+        $.ajax({
+            url: "util/joke.php?action=fetchJoke",
+            //dataType: "json",
+            data:{t:t,url:url},
+            beforeSend:function(){
+                $("#loading").css("display","block");
+            },
+            success: function (data) {
+                $("#loading").css("display","none");
+                $("#jokecontent").html(data);
+            }
+        });
+    }
+
+    /**
+     * 添加文字笑话到数据库
+     * @param obj
+     */
+    function addTextJoke(obj){
+        var content = $(obj).parent().prevAll()[0];
+        var title = $(obj).parent().prevAll()[1];
+        content = $(content).text();
+        title = $(title).text();
+        var json = {title:title,content:content};
+        $.ajax({
+            type:"post",
+            url: "util/joke.php?action=addJoke",
+            data:json,
+            success: function (data) {
+               console.log(data);
+            }
+        });
+    }
+
+    function addPicJoke(){
+        console.log("dev……");
+    }
+</script>

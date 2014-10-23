@@ -6,22 +6,52 @@
  * Time: 7:44
  */
 
-
+$action = "";
+if(isset($_GET['action'])){
+    $action = $_GET['action'];
+}
+if('fetchJoke' == $action){
+    $url = $_GET['url'];
+    $t = $_GET['t'];
+    if('fetchText' == $t){
+        if(isset($url)){
+            echo fetchJoke($url);
+        }else{
+           echo fetchJoke();
+        }
+    }else{
+        if(isset($url)){
+            echo  fetchPicJoke($url);
+        }else{
+            echo  fetchPicJoke();
+        }
+    }
+}
+if('addJoke' == $action){
+    $title = $_POST['title'];
+    $content = $_POST['content'];
+    if(isset($content)){
+        addJoke($title,$content);
+        echo $title."<br/>".$content;
+    }else{
+        echo "内容不能为空";
+    }
+}
 /**
  * 抓图笑话
  * @return string
  */
-function joke($url = "http://xiaohua.zol.com.cn/qutu/"){
-    include_once('thirdparty/simple_html_dom.php');
-    include_once('../db/DBUtil.php');
+function fetchPicJoke($url = "http://xiaohua.zol.com.cn/qutu/"){
+    include_once('../thirdparty/simple_html_dom.php');
+    $table = "";
     try{
-        $DB = new DBUtil('../nav/sqlite/manger/joke');
         $html = new simple_html_dom();
         $html->load_file($url); //put url or filename in place of xxx
         if(!isset($html)){
             $html->clear();
             return "获取失败，请联系开发人员";
         }else{
+            $table .=  "<table class='table'><thead><th>标题</th><th>内容</th><th>操作</th></thead><tbody>";
             foreach($html->find('ul[class=article-list] li') as $items){
                 //标题
                 $imgtitle = $items->find('span[class=article-title] a',0)->plaintext;
@@ -30,29 +60,33 @@ function joke($url = "http://xiaohua.zol.com.cn/qutu/"){
                 $imgloadsrc =  $items->find('div[class=summary-text] p a img',0);
                 $imgsrc = $items->find('div[class=summary-text] p a img',0)->src;
                 if($imgsrc==''){
-//                    echo $imgloadsrc->loadsrc.'<br/>';
-                    $DB->query("insert into joke (title,content) VALUES ('$imgtitle','$imgloadsrc')");
+                    $tmpSrc = $imgloadsrc->loadsrc;
+                    $len = strlen($tmpSrc);
+                    $id = substr($tmpSrc,$len-($len-70),$len-($len-75));
+                    $table .= "<tr><td>".$imgtitle."</td><td><img src='".$tmpSrc."'/></td><td>"
+                    ."<button onclick='addPicJoke(this)'>添加</button></td></tr>";
                 }else{
-//                    echo $imgsrc.'<br/>';
-                    $DB->query("insert into joke (title,content) VALUES ('$imgtitle','$imgsrc')");
+                    $len = strlen($imgsrc);
+                    $id = substr($imgsrc,$len-($len-70),$len-($len-75));
+                    $table .= "<tr><td>".$imgtitle."</td><td><img src='".$imgsrc."'/></td><td>"
+                        ."<button onclick='addPicJoke(this)'>添加</button></td></tr>";
                 }
             }
+            $table .= "</tbody></table>";
         }
     }catch (Exception $e){
-        $DB->del();
         echo $e->getMessage();
     }
-    $DB->del();
+    return $table;
 }
+
 
 /**
  * 抓取文字笑话
  */
 function fetchJoke($url='http://xiaohua.zol.com.cn/new/'){
     include_once('../thirdparty/simple_html_dom.php');
-    include_once('../db/DBUtil.php');
-    //最新笑话
-    $DB = new DBUtil('../nav/sqlite/manger/joke');
+    $table = "";
     try{
         $html = new simple_html_dom();
         $html->load_file($url); //put url or filename in place of xx
@@ -60,21 +94,39 @@ function fetchJoke($url='http://xiaohua.zol.com.cn/new/'){
             $html->clear();
             return "获取失败，请联系开发人员";
         }else{
+           $table .=  "<table class='table'><thead><th>标题</th><th>内容</th><th>操作</th></thead><tbody>";
             foreach ($html->find('ul[class=article-list] li') as $items) {
                 $joketitle = $items->find('span[class=article-title] a', 0)->plaintext;
                 $jokecontent = $items->find('div[class=summary-text]', 0)->plaintext;
                 //改变字符集
                 $joketitle =  iconv('gbk', 'utf-8', $joketitle);
                 $jokecontent =  iconv('gbk', 'utf-8', $jokecontent);
-                $DB->query("insert into joke (title,content) VALUES ('$joketitle','$jokecontent')");
-//                echo "<p><h3>" . $joketitle . "</h3>" . $jokecontent . '</p><br/>';
+                $table .= "<tr><td>".$joketitle."</td><td>".$jokecontent."</td><td>"
+                    ."<button onclick='addTextJoke(this)'>添加</button></td></tr>";
             }
+           $table .= "</tbody></table>";
         }
     }catch (Exception $e){
-        $DB->del();
         return $e->getMessage();
     }
-    $DB->del();
+    return $table;
+}
+
+/**
+ * 添加文字笑话
+ * @param $title
+ * @param $content
+ * @return string
+ */
+function addJoke($title,$content){
+    try{
+         include_once('../db/DBUtil.php');
+         $DB = new DBUtil('../nav/sqlite/manger/joke');
+         $DB->query("insert into joke (title,content) VALUES ('$title','$content')");
+         $DB->del();
+    }catch (Exception $e){
+        return $e->getMessage();
+    }
 }
 
 /**

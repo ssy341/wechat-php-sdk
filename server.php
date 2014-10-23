@@ -63,6 +63,7 @@
                       ."》everyday 金山词霸每日一句\n"
                       ."》history 历史上的今天\n"
                 ."》fy+你要翻译的词语或句子 比如：fyhello\n"
+                ."》joke 来一个笑话（文字，图片在补充当中……）\n"
                 ."更多功能持续更新中。。。  :-)\n";
             $this->responseText($content);
         }else if(substr($keyword,0,2) === $_fy_operate){
