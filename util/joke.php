@@ -137,7 +137,7 @@ function addJoke($title,$content){
 function getJoke($openid)
 {
     include_once('db/DBUtil.php');
-    $sql = "select id,title,content from joke where id not in (select jokeid from record where openid = '$openid') order by RANDOM() limit 1 ";
+    $sql = "select * from (select id,title,content from joke where id not in (select jokeid from record where openid = '$openid')) t order by RANDOM() limit 1";
     $DB = new DBUtil('db/joke');
     $result = $DB->query($sql);
     $joke = null;

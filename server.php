@@ -5,6 +5,14 @@
  * @author NetPuter <netputer@gmail.com>
  */
 
+$help = "欢迎使用小扇子robot！\n "
+    . "发送下列关键字可以获取更多资讯：\n"
+    . "》everyday 金山词霸每日一句\n"
+    . "》history 历史上的今天(暂时有问题，解决中)\n"
+    . "》fy+你要翻译的词语或句子 比如：fyhello\n"
+    . "》joke 来一个笑话（文字，图片在补充当中……）\n"
+    . "更多功能持续更新中。。。  :-)\n";
+
   require('util/Wechat.php');
 
 
@@ -20,7 +28,8 @@
      * @return void
      */
     protected function onSubscribe() {
-      $this->responseText('欢迎关注');
+        global $help;
+      $this->responseText($help);
     }
 
     /**
@@ -58,14 +67,8 @@
 //        $this->responseText($keyword);
 //        $content = "";
         if("help" === $keyword){
-            $content = "欢迎使用小扇子robot！\n "
-                      ."发送下列关键字可以获取更多资讯：\n"
-                      ."》everyday 金山词霸每日一句\n"
-                      ."》history 历史上的今天\n"
-                ."》fy+你要翻译的词语或句子 比如：fyhello\n"
-                ."》joke 来一个笑话（文字，图片在补充当中……）\n"
-                ."更多功能持续更新中。。。  :-)\n";
-            $this->responseText($content);
+            global $help;
+            $this->responseText($help);
         }else if(substr($keyword,0,2) === $_fy_operate){
             $content =  $this->fy($keyword);
             $this->responseText($content);
@@ -92,7 +95,14 @@
             $title = $content->getTitle();
             $summary = $content->getContent();
             record($openid,$id);
-            $this->responseText($title."\n".$summary);
+            if($this->match($summary)){
+                $items = array(
+                    new NewsResponseItem($title, null, $summary, $summary)
+                );
+                $this->responseNews($items);
+            }else{
+                $this->responseText($title."\n".$summary);
+            }
         }else{
             //include("util/xiaoi.php");
             //$content = getXiaoInfo("api-sieezeyr",$keyword);
@@ -125,7 +135,17 @@
       protected function renpin($content){
       	$this->responseText('人品不错哦今天！');
       }
-	  
+
+      /**
+       * 匹配url
+       * @param $str
+       * @return int
+       */
+      function match($str){
+          $regex = "/[a-z]+:\/\/[a-z0-9_\-\/.%]+/i";
+          $result = preg_match($regex,$str);
+          return $result;
+      }
 
     /**
      * 收到图片消息时触发，回复由收到的图片组成的图文消息
