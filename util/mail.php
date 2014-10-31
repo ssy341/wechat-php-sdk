@@ -6,10 +6,10 @@
 */
 function send_mail_lazypeople($to, $subject = 'Your register infomation', $body) {
     $loc_host = "SAE";
-    $smtp_acc = "thxopen@sina.com";
-    $smtp_pass="sae:)thxopen";
-    $smtp_host="smtp.sina.com";
-    $from="thxopen@sina.com";
+    $smtp_acc = "thxopen@yahoo.com";
+    $smtp_pass="sDc:)341";
+    $smtp_host="smtp.mail.yahoo.com";
+    $from="thxopen@yahoo.com";
     $headers = "Content-Type: text/plain; charset=\"utf-8\"\r\nContent-Transfer-Encoding: base64";
     $lb="\r\n";
 

@@ -121,7 +121,7 @@ function fetchJoke($url='http://xiaohua.zol.com.cn/new/'){
 function addJoke($title,$content){
     try{
          include_once('../db/DBUtil.php');
-         $DB = new DBUtil('../nav/sqlite/manger/joke');
+         $DB = new DBUtil('../nav/sqlite/phpliteadmin/joke');
          $DB->query("insert into joke (title,content) VALUES ('$title','$content')");
          $DB->del();
     }catch (Exception $e){
@@ -155,7 +155,7 @@ function getJoke($openid)
  */
 function record($openid,$jokeid){
     $sql = "insert into record (openid,jokeid) VALUES ('$openid','$jokeid')";
-    $DB = new DBUtil('../nav/sqlite/manger/joke');
+    $DB = new DBUtil('../nav/sqlite/phpliteadmin/joke');
     $DB->query($sql);
     $DB->del();
 }

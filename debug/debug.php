@@ -45,8 +45,8 @@ if ($operate === "histroy") {
 //    $content = j();
     fetchJoke();
 }else if($operate === 'mail'){
-    include("util/mail.php");
-    $result = send_mail_lazypeople('keith@thxopen.com','通知','你有新的消息');
+    include("../util/mail.php");
+    $result = send_mail_lazypeople('keithssy@sina.com','通知','你有新的消息');
 }
 
 echo $result;

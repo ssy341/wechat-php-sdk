@@ -13,7 +13,7 @@
         $title = @$_REQUEST['title'];
         $href = @$_REQUEST['href'];
         $category = @$_REQUEST['category'];
-        $target = '_blanck';
+        $target = '_blank';
         if($title != null && $href != null && $category != null){
             $db->query("INSERT INTO link (title,href,category,target) VALUES('$title','$href','$category','$target')");
         }else{
