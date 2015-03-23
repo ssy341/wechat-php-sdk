@@ -49,6 +49,15 @@ class DBUtil
     }
 
     /**
+     * 执行sql
+     * @param $sql  sql语句
+     */
+    public function prepare($sql)
+    {
+        return $this->db->prepare($sql);
+    }
+
+    /**
      * 关闭数据库
      */
     public function del()

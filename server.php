@@ -6,21 +6,22 @@
  */
 
 $help = "欢迎使用小扇子robot！\n "
-    . "发送下列关键字可以获取更多资讯：\n"
-    . "》everyday 金山词霸每日一句\n"
-    . "》history 历史上的今天(暂时有问题，解决中)\n"
-    . "》fy+你要翻译的词语或句子 比如：fyhello\n"
-    . "》joke 来一个笑话（文字，图片在补充当中……）\n"
-    . "更多功能持续更新中。。。  :-)\n";
+    ."发送下列关键字可以获取更多资讯：\n"
+    ."》【每日一句】金山词霸每日一句（set1）\n"
+    //."》history 历史上的今天(暂时有问题，解决中)\n"
+    ."》【hello】你要翻译的词语或句子（要在英语模式下） 比如：hello，如果需要发音发送：hellosv\n"
+    ."》【笑话】来一个笑话（要在无敌模式下）\n"
+    ."》【set1英语模式，set0无敌模式】"
+    ."更多功能持续更新中。。。  :-)\n";
 
-  require('util/Wechat.php');
+require('util/Wechat.php');
 
 
 
-  /**
-   * 微信公众平台演示类
-   */
-  class MyWechat extends Wechat {
+/**
+ * 微信公众平台演示类
+ */
+class MyWechat extends Wechat {
 
     /**
      * 用户关注时触发，回复「欢迎关注」
@@ -29,7 +30,7 @@ $help = "欢迎使用小扇子robot！\n "
      */
     protected function onSubscribe() {
         global $help;
-      $this->responseText($help);
+        $this->responseText($help);
     }
 
     /**
@@ -38,7 +39,7 @@ $help = "欢迎使用小扇子robot！\n "
      * @return void
      */
     protected function onUnsubscribe() {
-      // 「悄悄的我走了，正如我悄悄的来；我挥一挥衣袖，不带走一片云彩。」
+        // 「悄悄的我走了，正如我悄悄的来；我挥一挥衣袖，不带走一片云彩。」
     }
 
     /**
@@ -47,25 +48,149 @@ $help = "欢迎使用小扇子robot！\n "
      * @return void
      */
     protected function onText() {
-        //匹配前两个字符时fy的为翻译操作
-        $_fy_operate = "fy";
-        $_history_today = "history";
-        $_google = "g";
-        $_daily = "everyday";
-        $_joke = "joke";
-        /*if( $this->getRequest('content') === '蚂蚁上树')
-            //$this->responseText('收到了文字消息：' . $this->getRequest('content'));
-            $this->responseText('我不会做蚂蚁上树');
-        else if($this->getRequest('content') === '卢灿权')
-             $this->responseText('卢灿权王八蛋');
-        else if($this->getRequest('content') === '人品')
-        	$this->renpin($this->getRequest('content'));
-        else
-        	$this->responseText('收到了文字消息：' . $this->getRequest('content'));
-			*/
         $keyword = trim($this->getRequest('content'));
-//        $this->responseText($keyword);
-//        $content = "";
+        $openid = $this->getRequest('fromusername');
+        /*
+           * funid 定义
+           * 英语模式 1
+           * 万能模式 0
+           */
+        $_fn_english = "1";
+        $_fn_god = "0";
+        include_once('./db/DBUtil.php');
+
+        $sql = "select fun from function where userid = '$openid'";
+        $DB = new DBUtil('./db/sqlite/admin.sqlite3');
+        $result = $DB->query($sql);
+
+        $funidflag = "";
+        while ($res = $result->fetchArray()) {
+            if (isset($res['fun'])) {
+                $funidflag = $res['fun'];
+            }
+        }
+        if ('set' === substr($keyword, 0, 3)) {
+            $funid = substr($keyword, 3, 1);
+            $funid = trim($funid);
+            if(strlen($funid)>0){
+                if ($funidflag != "") {
+                    $update = "update function set fun = '$funid' where userid = '$openid'";
+                    $result = $DB->query($update);
+                } else {
+                    $insert = "insert into function (userid,fun) values('$openid','$funid ')";
+                    $result = $DB->query($insert);
+                }
+            }else{
+                if ($funidflag != "") {
+                    $update = "update function set fun = '0' where userid = '$openid'";
+                    $result = $DB->query($update);
+                } else {
+                    $insert = "insert into function (userid,fun) values('$openid','0 ')";
+                    $result = $DB->query($insert);
+                }
+            }
+            $DB->del();
+            $this->responseText("设置成功，当前功能为：$funid ");
+        }
+
+        //学英语模式
+        if($funidflag === $_fn_english){
+            if("每日一句" === $keyword){
+                include("util/dailysentence.php");
+                $content = getEverday();
+                $this->responseText($content);
+            }else{
+                include("util/translate.php");
+                $keywordsv = substr($keyword,0,strlen($keyword)-2);
+                //发音模式
+                if(substr($keyword,strlen($keyword)-2,2) === 'sv'){
+                    //发送语音
+                    $content = getTranslateVoice($keywordsv);
+                    $this->responseMusic($keywordsv,$content,'http://dict.youdao.com/dictvoice?audio='.$keywordsv,'http://dict.youdao.com/dictvoice?audio='.$keywordsv);
+                }else{
+                    //纯文字解释
+                    $result = $DB->query("select explain from words where word = '$keyword'");
+                    $haveContent = "";
+                    while ($res = $result->fetchArray()) {
+                        if (isset($res['explain'])) {
+                            $haveContent = $res['explain'];
+                        }
+                    }
+                    if($haveContent === ""){
+                        $content = getTranslateInfo($keyword);
+                        $haveContent = $content;
+                        //插入到数据库
+                        $stmt = $DB->prepare("insert into words (word,explain) values (:word,:explain)");
+                        $stmt->bindValue(':word', $keyword, SQLITE3_TEXT);
+                        $stmt->bindValue(':explain', $content, SQLITE3_TEXT);
+                        $stmt->execute();
+                    }
+                    $DB->del();
+                    $this->responseText($haveContent);
+                }
+            }
+        }else if($funidflag === $_fn_god) {
+            //万能模式
+            if("笑话" === $keyword){
+                include("util/joke.php");
+                $openid = $this->getRequest('fromusername');
+                $content = getJoke($openid);
+                if($content == null){
+                    $this->responseText("你太厉害了，笑话都看完了，赶快告诉主人，添加笑话吧！");
+                }
+                $id = $content->getId();
+                $title = $content->getTitle();
+                $summary = $content->getContent();
+                record($openid,$id);
+                if($this->match($summary)){
+                    $items = array(
+                        new NewsResponseItem($title, null, $summary, $summary)
+                    );
+                    $this->responseNews($items);
+                }else{
+                    $this->responseText($title."\n".$summary);
+                }
+            }
+
+        }else{
+            $DB->del();
+            if ($funidflag === "") {
+                global $help;
+                $this->responseText($help);
+            }else{
+                $content = "主人还没给我设置这类话题的回复，你帮我悄悄的告诉他吧~";
+                $this->responseText($content);
+            }
+        }
+
+
+
+
+       /* if("笑话" === $keyword){
+            include("util/joke.php");
+            $openid = $this->getRequest('fromusername');
+            $content = getJoke($openid);
+            if($content == null){
+                $this->responseText("你太厉害了，笑话都看完了，赶快告诉主人，添加笑话吧！");
+            }
+            $id = $content->getId();
+            $title = $content->getTitle();
+            $summary = $content->getContent();
+            record($openid,$id);
+            if($this->match($summary)){
+                $items = array(
+                    new NewsResponseItem($title, null, $summary, $summary)
+                );
+                $this->responseNews($items);
+            }else{
+                $this->responseText($title."\n".$summary);
+            }
+        }else{
+            include("util/translate.php");
+            $content = getTranslateInfo($keyword);
+            $this->responseText($content);
+        }*/
+        /*
         if("help" === $keyword){
             global $help;
             $this->responseText($help);
@@ -108,44 +233,46 @@ $help = "欢迎使用小扇子robot！\n "
             //$content = getXiaoInfo("api-sieezeyr",$keyword);
             $content = "主人还没给我设置这类话题的回复，你帮我悄悄的告诉他吧~";
             $this->responseText($content);
-        }
+        }*/
 
     }
 
-      /**
-       * 翻译模块
-       * @param $keyword
-       */
-      protected function fy($keyword){
-          include("util/translate.php");
-          if(strlen(substr($keyword,2))>0){
-              if(substr($keyword,2) === 'i love you'){
-                  $content = "我知道你很爱我，但是不要表达出来，我会害羞的么~\n如果你仍须翻译此话请发送fyfi love you";
-              }else if($keyword === 'fyfi love you'){
-                  $content = getTranslateInfo('i love you');
-              }else{
-                  $content = getTranslateInfo(substr($keyword,2));
-              }
-          }else{
-              $content = "发送fy+任何字符即可翻译 比如 fyhello world";
-          }
-         return $content;
-      }
+    /**
+     * 翻译模块
+     * @param $keyword
+     */
+    protected function fy($keyword){
+        include("util/translate.php");
+        if(strlen(substr($keyword,2))>0){
+            if(substr($keyword,2) === 'i love you'){
+                $content = "我知道你很爱我，但是不要表达出来，我会害羞的么~\n如果你仍须翻译此话请发送fyfi love you";
+            }else if($keyword === 'fyfi love you'){
+                $content = getTranslateInfo('i love you');
+            }else{
+                $content = getTranslateInfo(substr($keyword,2));
+            }
+        }else{
+            $content = "发送fy+任何字符即可翻译 比如 fyhello world";
+        }
+        return $content;
+    }
 
-      protected function renpin($content){
-      	$this->responseText('人品不错哦今天！');
-      }
+    protected function renpin($content){
+        $this->responseText('人品不错哦今天！');
+    }
 
-      /**
-       * 匹配url
-       * @param $str
-       * @return int
-       */
-      function match($str){
-          $regex = "/[a-z]+:\/\/[a-z0-9_\-\/.%]+/i";
-          $result = preg_match($regex,$str);
-          return $result;
-      }
+    /**
+     * 匹配url
+     * @param $str
+     * @return int
+     */
+    function match($str){
+        $regex = "/[a-z]+:\/\/[a-z0-9_\-\/.%]+/i";
+        $result = preg_match($regex,$str);
+        return $result;
+    }
+
+
 
     /**
      * 收到图片消息时触发，回复由收到的图片组成的图文消息
@@ -153,12 +280,12 @@ $help = "欢迎使用小扇子robot！\n "
      * @return void
      */
     protected function onImage() {
-      $items = array(
-        new NewsResponseItem('标题一', '描述一', $this->getRequest('picurl'), $this->getRequest('picurl')),
-        new NewsResponseItem('标题二', '描述二', $this->getRequest('picurl'), $this->getRequest('picurl')),
-      );
+        $items = array(
+            new NewsResponseItem('标题一', '描述一', $this->getRequest('picurl'), $this->getRequest('picurl')),
+            new NewsResponseItem('标题二', '描述二', $this->getRequest('picurl'), $this->getRequest('picurl')),
+        );
 
-      $this->responseNews($items);
+        $this->responseNews($items);
     }
 
     /**
@@ -167,10 +294,10 @@ $help = "欢迎使用小扇子robot！\n "
      * @return void
      */
     protected function onLocation() {
-     // $num = 1 / 0;
-      // 故意触发错误，用于演示调试功能
+        //$num = 1 / 0;
+        // 故意触发错误，用于演示调试功能
 
-      $this->responseText('收到了位置消息：' . $this->getRequest('location_x') . ',' . $this->getRequest('location_y'));
+        $this->responseText('收到了位置消息：' . $this->getRequest('location_x') . ',' . $this->getRequest('location_y'));
     }
 
     /**
@@ -179,7 +306,7 @@ $help = "欢迎使用小扇子robot！\n "
      * @return void
      */
     protected function onLink() {
-      $this->responseText('收到了链接：' . $this->getRequest('url'));
+        $this->responseText('收到了链接：' . $this->getRequest('url'));
     }
 
     /**
@@ -188,10 +315,10 @@ $help = "欢迎使用小扇子robot！\n "
      * @return void
      */
     protected function onUnknown() {
-      $this->responseText('收到了未知类型消息：' . $this->getRequest('msgtype'));
+        $this->responseText('收到了未知类型消息：' . $this->getRequest('msgtype'));
     }
 
-  }
+}
 
-  $wechat = new MyWechat('clboxing', TRUE);
-  $wechat->run();
+$wechat = new MyWechat('clboxing', TRUE);
+$wechat->run();
