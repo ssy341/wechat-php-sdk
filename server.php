@@ -48,7 +48,9 @@ class MyWechat extends Wechat {
      * @return void
      */
     protected function onText() {
+        //获取用户发送的文字
         $keyword = trim($this->getRequest('content'));
+        //获取用户的uuid
         $openid = $this->getRequest('fromusername');
         /*
            * funid 定义
@@ -57,18 +59,20 @@ class MyWechat extends Wechat {
            */
         $_fn_english = "1";
         $_fn_god = "0";
-        include_once('./db/DBUtil.php');
 
+        //查询模式
+        include_once('./db/DBUtil.php');
         $sql = "select fun from function where userid = '$openid'";
         $DB = new DBUtil('./db/sqlite/admin.sqlite3');
         $result = $DB->query($sql);
-
         $funidflag = "";
         while ($res = $result->fetchArray()) {
             if (isset($res['fun'])) {
                 $funidflag = $res['fun'];
             }
         }
+
+        //设置模式
         if ('set' === substr($keyword, 0, 3)) {
             $funid = substr($keyword, 3, 1);
             $funid = trim($funid);
@@ -81,6 +85,7 @@ class MyWechat extends Wechat {
                     $result = $DB->query($insert);
                 }
             }else{
+                //默认设置万能模式
                 if ($funidflag != "") {
                     $update = "update function set fun = '0' where userid = '$openid'";
                     $result = $DB->query($update);
