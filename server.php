@@ -98,6 +98,45 @@ class MyWechat extends Wechat {
             $this->responseText("设置成功，当前功能为：$funid ");
         }
 
+        //复习
+        //http://weixin.thxopen.com/db/phpliteadmin.php
+        if ('re word' === $keyword) {
+            $reviewsql = "select * from ( select word,explain from words order by RANDOM() ) t  limit 10";
+
+            $reviewword = [];
+            $result = $DB->query($reviewsql);
+
+            while ($res = $result->fetchArray()) {
+                if (isset($res['word'])) {
+                    array_push($reviewword, array("explain" => $res['explain']));
+                }
+            }
+            $content = "";
+            for ($i = 0; $i < count($reviewword); $i++) {
+                $tmp = $reviewword[$i]['explain'] . "\n";
+                $contentlen = strlen($content);
+                $tmplen = strlen($tmp);
+                if ($contentlen > 2000 || $contentlen + $tmplen > 2000) {
+                    break;
+                } else {
+                    $content .= $tmp;
+                }
+            }
+            $DB->del();
+            $content = str_replace("查询[", "", $content);
+            $content = str_replace("]", "", $content);
+            $content = str_replace("以上结果由有道提供", "----------", $content);
+            $this->responseText($content);
+        }
+
+        //移除单词
+        if ('rm' === substr($keyword, 0, 2)) {
+            $word = substr($keyword, 2);
+            $delsql = "delete from words where word = '$word'";
+            $result = $DB->query($delsql);
+            $this->responseText($result);
+        }
+
         //学英语模式
         if($funidflag === $_fn_english){
             if("每日一句" === $keyword){
