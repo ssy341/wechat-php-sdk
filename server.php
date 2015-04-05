@@ -7,7 +7,7 @@
 
 $help = "欢迎使用小扇子robot！\n "
     ."发送下列关键字可以获取更多资讯：\n"
-    ."》【每日一句】金山词霸每日一句（set1）\n"
+    ."》【e】金山词霸每日一句（set1）\n"
     //."》history 历史上的今天(暂时有问题，解决中)\n"
     ."》【hello】你要翻译的词语或句子（要在英语模式下） 比如：hello，如果需要发音发送：hellosv\n"
     ."》【笑话】来一个笑话（要在无敌模式下）\n"
@@ -47,7 +47,8 @@ class MyWechat extends Wechat {
      *
      * @return void
      */
-    protected function onText() {
+    protected function onText()
+    {
         //获取用户发送的文字
         $keyword = trim($this->getRequest('content'));
         //获取用户的uuid
@@ -60,7 +61,7 @@ class MyWechat extends Wechat {
         $_fn_english = "1";
         $_fn_god = "0";
 
-        //查询模式
+        //查询当前模式
         include_once('./db/DBUtil.php');
         $sql = "select fun from function where userid = '$openid'";
         $DB = new DBUtil('./db/sqlite/admin.sqlite3');
@@ -76,7 +77,7 @@ class MyWechat extends Wechat {
         if ('set' === substr($keyword, 0, 3)) {
             $funid = substr($keyword, 3, 1);
             $funid = trim($funid);
-            if(strlen($funid)>0){
+            if (strlen($funid) > 0) {
                 if ($funidflag != "") {
                     $update = "update function set fun = '$funid' where userid = '$openid'";
                     $result = $DB->query($update);
@@ -84,7 +85,7 @@ class MyWechat extends Wechat {
                     $insert = "insert into function (userid,fun) values('$openid','$funid ')";
                     $result = $DB->query($insert);
                 }
-            }else{
+            } else {
                 //默认设置万能模式
                 if ($funidflag != "") {
                     $update = "update function set fun = '0' where userid = '$openid'";
@@ -98,142 +99,148 @@ class MyWechat extends Wechat {
             $this->responseText("设置成功，当前功能为：$funid ");
         }
 
-        //复习
-        //http://weixin.thxopen.com/db/phpliteadmin.php
-        if ('re word' === $keyword) {
-            $reviewsql = "select * from ( select word,explain from words order by RANDOM() ) t  limit 10";
-
-            $reviewword = [];
-            $result = $DB->query($reviewsql);
-
-            while ($res = $result->fetchArray()) {
-                if (isset($res['word'])) {
-                    array_push($reviewword, array("explain" => $res['explain']));
-                }
-            }
-            $content = "";
-            for ($i = 0; $i < count($reviewword); $i++) {
-                $tmp = $reviewword[$i]['explain'] . "\n";
-                $contentlen = strlen($content);
-                $tmplen = strlen($tmp);
-                if ($contentlen > 2000 || $contentlen + $tmplen > 2000) {
-                    break;
-                } else {
-                    $content .= $tmp;
-                }
-            }
-            $DB->del();
-            $content = str_replace("查询[", "", $content);
-            $content = str_replace("]", "", $content);
-            $content = str_replace("以上结果由有道提供", "----------", $content);
-            $this->responseText($content);
-        }
-
-        //移除单词
-        if ('rm' === substr($keyword, 0, 2)) {
-            $word = substr($keyword, 2);
-            $delsql = "delete from words where word = '$word'";
-            $result = $DB->query($delsql);
-            $this->responseText($result);
-        }
-
         //学英语模式
-        if($funidflag === $_fn_english){
-            if("每日一句" === $keyword){
+        if ($funidflag === $_fn_english) {
+            include("util/translate.php");
+            //如果是直接向得到发音
+            $keywordsv = substr($keyword,0,strlen($keyword)-2);
+            //金山词霸每日英语
+            if ("e" === $keyword) {
                 include("util/dailysentence.php");
                 $content = getEverday();
                 $this->responseText($content);
-            }else{
-                include("util/translate.php");
-                $keywordsv = substr($keyword,0,strlen($keyword)-2);
-                //发音模式
-                if(substr($keyword,strlen($keyword)-2,2) === 'sv'){
-                    //发送语音
-                    $content = getTranslateVoice($keywordsv);
-                    $this->responseMusic($keywordsv,$content,'http://dict.youdao.com/dictvoice?audio='.$keywordsv,'http://dict.youdao.com/dictvoice?audio='.$keywordsv);
-                }else{
-                    //纯文字解释
-                    $result = $DB->query("select explain from words where word = '$keyword'");
-                    $haveContent = "";
-                    while ($res = $result->fetchArray()) {
-                        if (isset($res['explain'])) {
-                            $haveContent = $res['explain'];
-                        }
+            } else if ("v" === $keyword) {
+                //回复语音（已经查询过的单词）
+                //http://weixin.thxopen.com/db/phpliteadmin.php
+                //发送语音
+                $sql = "select value from cache where key = 'looked'";
+                $result = $DB->query($sql);
+                $lookedword = "";
+                while ($res = $result->fetchArray()) {
+                    if (isset($res['value'])) {
+                        $lookedword = $res['value'];
                     }
-                    if($haveContent === ""){
-                        $content = getTranslateInfo($keyword);
-                        $haveContent = $content;
-                        //插入到数据库
-                        $stmt = $DB->prepare("insert into words (word,explain) values (:word,:explain)");
-                        $stmt->bindValue(':word', $keyword, SQLITE3_TEXT);
-                        $stmt->bindValue(':explain', $content, SQLITE3_TEXT);
-                        $stmt->execute();
-                    }
-                    $DB->del();
-                    $this->responseText($haveContent);
                 }
+                $content = getTranslateVoice($lookedword);
+                $this->responseMusic($lookedword, $content, 'http://dict.youdao.com/dictvoice?audio=' . $lookedword, 'http://dict.youdao.com/dictvoice?audio=' . $lookedword);
+            } else if(substr($keyword,strlen($keyword)-2,2) === 'sv'){
+                //直接发送语音
+                $content = getTranslateVoice($keywordsv);
+                $this->responseMusic($keywordsv,$content,'http://dict.youdao.com/dictvoice?audio='.$keywordsv,'http://dict.youdao.com/dictvoice?audio='.$keywordsv);
+            }else if ("r" === $keyword) {
+                //回复之前查询过的单词，随机取十个
+                //http://weixin.thxopen.com/db/phpliteadmin.php
+                $reviewsql = "select * from ( select word,explain from words order by RANDOM() ) t  limit 10";
+                $reviewword = [];
+                $result = $DB->query($reviewsql);
+                while ($res = $result->fetchArray()) {
+                    if (isset($res['word'])) {
+                        array_push($reviewword, array("explain" => $res['explain']));
+                    }
+                }
+                $content = "";
+                for ($i = 0; $i < count($reviewword); $i++) {
+                    $tmp = $reviewword[$i]['explain'] . "\n";
+                    $contentlen = strlen($content);
+                    $tmplen = strlen($tmp);
+                    if ($contentlen > 2000 || $contentlen + $tmplen > 2000) {
+                        break;
+                    } else {
+                        $content .= $tmp;
+                    }
+                }
+                $DB->del();
+                $content = str_replace("查询[", "", $content);
+                $content = str_replace("]", "", $content);
+                $content = str_replace("以上结果由有道提供", "----------", $content);
+                $this->responseText($content);
+            } else {
+                //纯文字解释
+                $result = $DB->query("select explain from words where word = '$keyword'");
+                $haveContent = "";
+                while ($res = $result->fetchArray()) {
+                    if (isset($res['explain'])) {
+                        $haveContent = $res['explain'];
+                    }
+                }
+                if ($haveContent === "") {
+                    $content = getTranslateInfo($keyword);
+                    $haveContent = $content;
+                    //插入到数据库
+                    $stmt = $DB->prepare("insert into words (word,explain) values (:word,:explain)");
+                    $stmt->bindValue(':word', $keyword, SQLITE3_TEXT);
+                    $content = str_replace("查询[", "", $content);
+                    $content = str_replace("]", "", $content);
+                    $content = str_replace("以上结果由有道提供", "", $content);
+                    $stmt->bindValue(':explain', $content, SQLITE3_TEXT);
+                    $stmt->execute();
+
+                    //每次查了新词。更新本次查询的单词到"缓存"，以便获取发音
+                    $sql = "update cache set value = '$keyword' where key = 'looked'";
+                    $DB->query($sql);
+                }
+                $DB->del();
+                $this->responseText($haveContent);
             }
-        }else if($funidflag === $_fn_god) {
+        } else if ($funidflag === $_fn_god) {
             //万能模式
-            if("笑话" === $keyword){
+            if ("笑话" === $keyword) {
                 include("util/joke.php");
                 $openid = $this->getRequest('fromusername');
                 $content = getJoke($openid);
-                if($content == null){
+                if ($content == null) {
                     $this->responseText("你太厉害了，笑话都看完了，赶快告诉主人，添加笑话吧！");
                 }
                 $id = $content->getId();
                 $title = $content->getTitle();
                 $summary = $content->getContent();
-                record($openid,$id);
-                if($this->match($summary)){
+                record($openid, $id);
+                if ($this->match($summary)) {
                     $items = array(
                         new NewsResponseItem($title, null, $summary, $summary)
                     );
                     $this->responseNews($items);
-                }else{
-                    $this->responseText($title."\n".$summary);
+                } else {
+                    $this->responseText($title . "\n" . $summary);
                 }
             }
 
-        }else{
+        } else {
             $DB->del();
             if ($funidflag === "") {
                 global $help;
                 $this->responseText($help);
-            }else{
+            } else {
                 $content = "主人还没给我设置这类话题的回复，你帮我悄悄的告诉他吧~";
                 $this->responseText($content);
             }
         }
 
 
-
-
-       /* if("笑话" === $keyword){
-            include("util/joke.php");
-            $openid = $this->getRequest('fromusername');
-            $content = getJoke($openid);
-            if($content == null){
-                $this->responseText("你太厉害了，笑话都看完了，赶快告诉主人，添加笑话吧！");
-            }
-            $id = $content->getId();
-            $title = $content->getTitle();
-            $summary = $content->getContent();
-            record($openid,$id);
-            if($this->match($summary)){
-                $items = array(
-                    new NewsResponseItem($title, null, $summary, $summary)
-                );
-                $this->responseNews($items);
-            }else{
-                $this->responseText($title."\n".$summary);
-            }
-        }else{
-            include("util/translate.php");
-            $content = getTranslateInfo($keyword);
-            $this->responseText($content);
-        }*/
+        /* if("笑话" === $keyword){
+             include("util/joke.php");
+             $openid = $this->getRequest('fromusername');
+             $content = getJoke($openid);
+             if($content == null){
+                 $this->responseText("你太厉害了，笑话都看完了，赶快告诉主人，添加笑话吧！");
+             }
+             $id = $content->getId();
+             $title = $content->getTitle();
+             $summary = $content->getContent();
+             record($openid,$id);
+             if($this->match($summary)){
+                 $items = array(
+                     new NewsResponseItem($title, null, $summary, $summary)
+                 );
+                 $this->responseNews($items);
+             }else{
+                 $this->responseText($title."\n".$summary);
+             }
+         }else{
+             include("util/translate.php");
+             $content = getTranslateInfo($keyword);
+             $this->responseText($content);
+         }*/
         /*
         if("help" === $keyword){
             global $help;
